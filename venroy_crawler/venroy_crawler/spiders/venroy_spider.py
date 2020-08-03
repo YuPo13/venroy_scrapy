@@ -24,7 +24,7 @@ class VenroySpider(CrawlSpider):
                     'a/returns',
                     'shop-new',
                     'shop-all',
-                    'sweaters',
+                    'knitwear',
                     'venroyfromhome',
                     'venroy-beach-club',
                     'spring-18',
