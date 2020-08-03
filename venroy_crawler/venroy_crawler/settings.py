@@ -12,7 +12,7 @@ BOT_NAME = 'venroy_crawler'
 SPIDER_MODULES = ['venroy_crawler.spiders']
 NEWSPIDER_MODULE = 'venroy_crawler.spiders'
 FEED_FORMAT = "csv"
-FEED_URI = "venroy.csv"
+FEED_URI = "venroy_with_uploader.csv"
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent

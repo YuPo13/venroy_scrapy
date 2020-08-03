@@ -1,7 +1,7 @@
 import scrapy
 from scrapy.spiders import CrawlSpider, Rule
 from scrapy.linkextractors import LinkExtractor
-from venroy_crawler.items import VenroyItem
+from venroy_crawler.items import VenroyLoader
 
 
 class VenroySpider(CrawlSpider):
@@ -55,7 +55,8 @@ class VenroySpider(CrawlSpider):
             if len(items) > 100:
                 break
             else:
-                # Check whether the domain of the URL of the link is allowed; so whether it is in one of the allowed domains
+                # Check whether the domain of the URL of the link is allowed; so whether it is in one of the allowed
+                # domains
                 for domain in self.allowed_domains:
                     if domain in link.url:
                         # Get response from product page
@@ -68,17 +69,12 @@ class VenroySpider(CrawlSpider):
                                 # If this particular product hasn't been scraped yet it's added to items list and
                                 # its instance with respective fields is created
                                 items.append(unique_product)
-                                item = VenroyItem()
-                                item['colour'] = colour
-                                item['product_name'] = product_name
-                                item['price'] = response.xpath(
-                                    '//*[@id="ProductPrice-product-template"]/@content').get()
-                                item['currency'] = response.xpath(
-                                    '//*[@class="current-currency"]/span/text()').get().strip("$")
-                                image_urls = response.xpath(
-                                        '//*[@class="product-single__photos-desktop"]/img/@src').extract()
-                                item['image_urls'] = ">>".join(["https:" + url for url in image_urls])
-
+                                loader = VenroyLoader(selector=response)
+                                loader.add_value('product_name', product_name)
+                                loader.add_value('colour', colour)
+                                loader.add_xpath('currency', '//*[@class="current-currency"]/span/text()')
+                                loader.add_xpath('price', '//*[@id="ProductPrice-product-template"]/@content')
+                                loader.add_xpath('image_urls', '//*[@class="product-single__photos-desktop"]/img/@src')
                                 # As products description has various location and structure at different pages
                                 # I've implemented rather bulky approach in order to gather it into one field
                                 description_passage = response.xpath(
@@ -113,8 +109,8 @@ class VenroySpider(CrawlSpider):
                                     additional_info = "".join(["\n - " + item for item in response.xpath(
                                         '//*[@class="product-single__description rte"]/ul/li/text()').extract()
                                                                if item != "\n"])
-                                    item['description'] = description + additional_info
+                                    loader.add_value('description', description + additional_info)
                                 else:
-                                    item['description'] = description
+                                    loader.add_value('description', description)
 
-                                yield item
+                                yield loader.load_item()
