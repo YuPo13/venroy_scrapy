@@ -60,57 +60,42 @@ class VenroySpider(CrawlSpider):
                 for domain in self.allowed_domains:
                     if domain in link.url:
                         # Get response from product page
-                        product_name = response.xpath('//*[@class="product-single__title"]/text()').get()
-                        if product_name:
-                            # Extract the colour of the product to merge it with product name and check for uniqueness
-                            colour = response.xpath('//*[@class="color-img active"]/@alt').get()
-                            unique_product = product_name + "_" + colour
-                            if unique_product not in items:
-                                # If this particular product hasn't been scraped yet it's added to items list and
-                                # its instance with respective fields is created
-                                items.append(unique_product)
-                                loader = VenroyLoader(selector=response)
-                                loader.add_value('product_name', product_name)
-                                loader.add_value('colour', colour)
-                                loader.add_xpath('currency', '//*[@class="current-currency"]/span/text()')
-                                loader.add_xpath('price', '//*[@id="ProductPrice-product-template"]/@content')
-                                loader.add_xpath('image_urls', '//*[@class="product-single__photos-desktop"]/img/@src')
-                                # As products description has various location and structure at different pages
-                                # I've implemented rather bulky approach in order to gather it into one field
-                                description_passage = response.xpath(
-                                    '//*[@id="shopify-section-product-template"]/comment()').get()
-                                description_start = description_passage.find("</strong>") + 9
-                                description_end_fabric = description_passage.find("Fabric")
-                                description_end_worn = description_passage.find("Worn")
-                                description_end_size = description_passage.find("Size")
+                        product_title = response.xpath('//title/text()').get()
+                        product_name = response.xpath('//*[@class="handle__Heading-sc-hd87fs-0 lKRSl"]/text()').get()
+                        if product_name and product_title not in items:
+                            # If this particular product hasn't been scraped yet it's added to items list and
+                            # its instance with respective fields is created
+                            items.append(product_title)
+                            loader = VenroyLoader(selector=response)
+                            title_name = product_title.split("|")[0]
+                            title_colour = title_name.split(" in ")[1]
+                            loader.add_value('product_name', product_name)
+                            loader.add_value('colour', title_colour)
+                            # loader.add_xpath('currency', '//*[@class="current-currency"]/span/text()')
+                            # loader.add_xpath('price', '//*[@id="ProductPrice-product-template"]/@content')
+                            image_url = response.xpath('//*[@property="og:image"]/@content').get().strip("https:")
+                            loader.add_value('image_urls', image_url)
+                            # As products description has various location and structure at different pages
+                            # I've implemented rather bulky approach in order to gather it into one field
+                            description_passage = response.xpath(
+                                '//*[@class="Accordion__Wrapper-sc-wihakm-3 bMligg accordion active"]/@content').get()
+                            description = description_passage.\
+                                replace("<br>", "").\
+                                replace("<strong>", "").\
+                                replace("<span>", "").\
+                                replace("</strong>", "").\
+                                replace('<meta charset="utf-8">', "").\
+                                replace("<p>", "").\
+                                replace("</p>", "").\
+                                replace("/span", "").\
+                                replace("<>", "").\
+                                replace("</em>", "").\
+                                replace("<ul>", "").\
+                                replace("</li>", "").\
+                                replace("</ul>", "").\
+                                replace("<li>", "").\
+                                strip()
 
-                                if 0 < description_end_worn < description_end_fabric:
-                                    description_end = description_end_worn
-                                elif description_end_worn < 0 and description_end_fabric < 0:
-                                    description_end = description_end_size
-                                else:
-                                    description_end = description_end_fabric
+                            loader.add_value('description', description)
 
-                                description = description_passage[description_start:description_end].\
-                                    replace("<br>", "").\
-                                    replace("<strong>", "").\
-                                    replace("<span>", "").\
-                                    replace("</strong>", "").\
-                                    replace('<meta charset="utf-8">', "").\
-                                    replace("<p>", "").\
-                                    replace("</p>", "").\
-                                    replace("/span", "").\
-                                    replace("<>", "").\
-                                    replace("</em>", "").\
-                                    strip()
-
-                                if response.xpath(
-                                        '//*[@class="product-single__description rte"]/ul/li/text()').extract():
-                                    additional_info = "".join(["\n - " + item for item in response.xpath(
-                                        '//*[@class="product-single__description rte"]/ul/li/text()').extract()
-                                                               if item != "\n"])
-                                    loader.add_value('description', description + additional_info)
-                                else:
-                                    loader.add_value('description', description)
-
-                                yield loader.load_item()
+                            yield loader.load_item()
