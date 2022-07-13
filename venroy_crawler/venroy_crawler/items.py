@@ -6,8 +6,8 @@ from scrapy.loader.processors import Compose, MapCompose, Join, TakeFirst
 class VenroyItem(Item):
     product_name = Field()
     colour = Field()
-    price = Field()
-    currency = Field()
+#     price = Field()
+#     currency = Field()
     image_urls = Field()
     description = Field()
 
